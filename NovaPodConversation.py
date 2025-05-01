@@ -1,5 +1,3 @@
-# Code created by Diego Renteria and Anh Nguyen
-# This is the final working code for the conversational section of the Nova Pod
 from dotenv import load_dotenv
 import os
 from pathlib import Path

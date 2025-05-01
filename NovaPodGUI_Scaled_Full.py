@@ -1,6 +1,8 @@
 from dotenv import load_dotenv
 from pathlib import Path
 import os
+os.environ['SDL_AUDIODRIVER'] = 'alsa'
+os.environ['AUDIODEV'] = 'hw:0,0'
 
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
@@ -9,7 +11,7 @@ load_dotenv(dotenv_path=env_path)
 load_dotenv(dotenv_path=env_path, override=True)
 
 # Test print
-print("Loaded Weather API Key:", os.getenv("OPENWEATHER_API_KEY"))
+print("Loaded Weather API 2Key:", os.getenv("OPENWEATHER_API_KEY"))
 print("Current working dir:", os.getcwd())
 import pygame
 import time
@@ -17,12 +19,12 @@ import math
 import requests
 import os
 import random
-from datetime import datetime, timedelta, timezone  # Added timezone
+from datetime import datetime, timedelta, timezone
 from pygame.locals import MOUSEBUTTONDOWN, MOUSEBUTTONUP, MOUSEMOTION
 import pygame.mixer
 from pygame import Rect
 import pathlib
-import speech_recognition as sr # <-- NEW Diego
+import speech_recognition as sr
 import json
 import threading
 
@@ -30,12 +32,14 @@ import threading
 # Pygame Initialization
 pygame.init()
 pygame.mouse.set_visible(False)
-pygame.mixer.init()
+pygame.mixer.quit()
+ALARM_SOUND = pygame.mixer.Sound("sounds/alarm_beep.wav")
+ALARM_SOUND.set_volume(1.0)
 
-ALARM_BG_IMAGE = "alarmbackground.png"  # Your custom background filename
-BACK_ICON_IMAGE = "Home Button.png"  # Your custom home button image
+ALARM_BG_IMAGE = "alarmbackground.png"
+BACK_ICON_IMAGE = "Home Button.png"
 
-# Set up the fullscreen display and scale system
+# Fulscreen display setup
 infoObject = pygame.display.Info()
 width, height = infoObject.current_w, infoObject.current_h
 screen = pygame.display.set_mode((width, height), pygame.FULLSCREEN)
@@ -45,7 +49,7 @@ pygame.display.set_caption("Nova Pod Homescreen")
 BASE_WIDTH, BASE_HEIGHT = 800, 800
 scale_x = width / BASE_WIDTH
 scale_y = height / BASE_HEIGHT
-scale = min(scale_x, scale_y)  # Keep proportional scaling
+scale = min(scale_x, scale_y)
 
 # Constants for saving/loading alarms
 SAVE_FILE = "alarms.json"
@@ -80,7 +84,6 @@ TAB_HEIGHT = int(60 * scale)
 ROTARY_RADIUS = int(150 * scale)
 ROTARY_CENTER = (width // 2, height // 2)
 
-# Diego copy this entire section from here until the next time I say diego
 global_tasks = []
 global_full_tasks = []
 global_checkboxes = []
@@ -109,7 +112,7 @@ def load_state():
    except Exception as e:
        print("No saved state or error loading:", e)
 
-load_state()  # <-- ADD THIS LINE
+load_state()
 
 
 ALARM_UI_CONFIG = {
@@ -162,8 +165,8 @@ required_files = [
     'Stormy Background.png',
     'Geoform-Bold.otf',
     'nova_pod_alarm_sound.wav',
-    'todobackground.png',  # <-- ADD THIS LINE
-    'Home Button.png'  # Add your new home button image
+    'todobackground.png',
+    'Home Button.png'
 ]
 
 
@@ -186,7 +189,7 @@ def save_alarms(alarms):
             "time": alarm.time,
             "active": alarm.active,
             "period": alarm.period,
-            "sounding": alarm.sounding  # Add this line
+            "sounding": alarm.sounding
         })
     with open(SAVE_FILE, "w") as f:
         json.dump(save_data, f)
@@ -209,7 +212,7 @@ def load_alarms():
             for item in data:
                 alarm = Alarm(tuple(item["time"]), item["period"])
                 alarm.active = item["active"]
-                alarm.sounding = item.get("sounding", False)  # Add this line
+                alarm.sounding = item.get("sounding", False)
                 alarms.append(alarm)
             return alarms
     except FileNotFoundError:
@@ -240,7 +243,7 @@ def load_background(path, target_width, target_height):
         # Calculate scaling factors
         width_ratio = target_width / orig_width
         height_ratio = target_height / orig_height
-        scale = max(width_ratio, height_ratio)  # Cover entire screen
+        scale = max(width_ratio, height_ratio)
 
         new_size = (int(orig_width * scale), int(orig_height * scale))
         scaled_image = pygame.transform.smoothscale(image, new_size)
@@ -333,7 +336,7 @@ class Alarm:
         self.time = time
         self.period = period
         self.active = True
-        self.sounding = False  # Add this line
+        self.sounding = False
 
 # Helper Functions
 def is_mouse_on_icon(mouse_pos, icon_pos, radius):
@@ -391,7 +394,6 @@ def get_rotary_input(pos, current_hours, current_minutes, control_mode):
         hours = 12 if hours == 0 else hours
         return hours, current_minutes
     else:
-        # Changed: Removed 5-minute increment rounding
         minutes = int((angle % 360) // 6)
         return current_hours, minutes
 
@@ -434,7 +436,6 @@ def draw_rotary_dial(rotary_hours, rotary_minutes, am_pm, control_mode):
                      (ROTARY_CENTER[0] + ROTARY_RADIUS * 0.8 * math.cos(minute_angle),
                       ROTARY_CENTER[1] - ROTARY_RADIUS * 0.8 * math.sin(minute_angle)), 3)
 
-    # Removed the mode indicator circle and text here
     toggle_rect = Rect(width - int(200 * scale), height // 2 - int(20 * scale), int(100 * scale), int(40 * scale))
     pygame.draw.rect(screen, ALARM_ACCENT_COLOR if am_pm == 'PM' else (80, 80, 80),
                      toggle_rect, border_radius=20)
@@ -459,7 +460,7 @@ def get_weather():
         data = response.json()
         temperature = round(data["main"]["temp"])
         weather_condition = data["weather"][0]["main"].lower()
-        timezone_offset = data["timezone"]  # Timezone offset in seconds
+        timezone_offset = data["timezone"]
 
         # Convert sunrise and sunset times to San Antonio's local time
         sunrise_utc = datetime.fromtimestamp(data["sys"]["sunrise"], tz=timezone.utc)
@@ -604,7 +605,6 @@ def open_alarm_app():
     alarm_bg, alarm_bg_rect = load_background(ALARM_BG_IMAGE, width, height)
     alarms = load_alarms()
 
-    # Rest of the existing code remains the same
     alarm_bg, alarm_bg_rect = load_background(ALARM_BG_IMAGE, width, height)
     alarms = load_alarms()
     setting_time = None
@@ -623,7 +623,6 @@ def open_alarm_app():
         else:
             screen.fill(BACKGROUND_COLOR)
 
-        # Rest of the existing code remains the same
         pygame.draw.circle(screen, BORDER_COLOR, (width // 2, height // 2), int(380 * scale), int(5 * scale))
         back_icon_pos, back_icon_radius = draw_back_icon()
 
@@ -637,10 +636,9 @@ def open_alarm_app():
             y = int(250 * scale)
             delete_buttons = []
             toggle_buttons = []
-            config = ALARM_UI_CONFIG  # Shortcut reference
+            config = ALARM_UI_CONFIG
 
             for display_idx, (orig_idx, alarm) in enumerate(sorted_alarms[:3]):
-                # Calculate positions using config
                 toggle_x = config["button_margin"]
                 delete_x = width - config["button_margin"] - config["delete_button_size"]
                 text_x = width // 2 + config["text_offset"]
@@ -664,11 +662,11 @@ def open_alarm_app():
                 time_surf = NEWS_TITLE_FONT.render(time_text, True, TEXT_COLOR)
                 screen.blit(time_surf, (text_x, y))
 
-                # Draw delete button (right side) - MODIFIED VERSION
+                # Draw delete button (right side)
                 delete_rect = draw_delete_button(y)
                 delete_buttons.append((delete_rect, orig_idx))
 
-                y += config["row_spacing"]  # Keep original spacing for rows
+                y += config["row_spacing"]
 
             add_rect = Rect(width // 2 - int(50 * scale), height - int(180 * scale), int(100 * scale), int(40 * scale))
             pygame.draw.rect(screen, ALARM_ACCENT_COLOR, add_rect, border_radius=20)
@@ -839,7 +837,6 @@ def open_weather_app():
     sunset = weather_data[3] if weather_data else None
     tz_offset = weather_data[4] if weather_data else None
 
-    # Rest of the function remains the same
     stormy_conditions = {'thunderstorm', 'drizzle', 'rain'}
     bg_image = "anh_sunny_bg.png"
 
@@ -847,7 +844,7 @@ def open_weather_app():
         if condition in stormy_conditions:
             bg_image = "Stormy Background.png"
         else:
-            current_utc = datetime.now(timezone.utc)  # Updated UTC time retrieval
+            current_utc = datetime.now(timezone.utc)
             san_antonio_time = current_utc + timedelta(seconds=tz_offset)
             is_daytime = sunrise <= san_antonio_time < sunset
             bg_image = "anh_sunny_bg.png" if is_daytime else "anh_night_bg.png"
@@ -1214,8 +1211,6 @@ def open_todo_app():
     if recording_event and recording_event.is_set():
         recording_event.clear()
 
-    # [PASTE THE ENTIRE 130-LINE open_todo_app FUNCTION FROM YOUR FRIEND'S CODE HERE]
-    # Keep all the drawing logic and event handling from their implementation
 
 def handle_app_clicks():
     mouse_pos = pygame.mouse.get_pos()
@@ -1290,7 +1285,7 @@ def alarm_check_thread():
                 ALARM_SOUND.stop()
                 ALARM_SOUND_PLAYING = False
 
-        time.sleep(0.5)  # Check twice per second
+        time.sleep(0.5)
 
 
 # Start the alarm thread
